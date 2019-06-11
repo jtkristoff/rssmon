@@ -97,7 +97,7 @@ for probe in probes:
                 try:
                     rt = results['result']['rt']
                 except:
-                    rt = -1   # error in measurement
+                    rt = -10   # error in measurement
 
                 ts = datetime.utcfromtimestamp(results['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
 
