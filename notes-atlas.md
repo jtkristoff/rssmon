@@ -43,3 +43,11 @@ Measurements](https://atlas.ripe.net/docs/built-in/) page.
 * bar
 
    `https://atlas.ripe.net/api/v2/measurements/10009`
+
+* baz
+
+    `https://atlas.ripe.net/api/v2/measurements/10009/latest/?probe_ids=6489`
+
+* qux 
+
+    `https://atlas.ripe.net/api/v2/measurements/10009/results/?probe_ids=6489&start=1560180000`
