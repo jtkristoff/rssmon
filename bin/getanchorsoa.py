@@ -106,6 +106,7 @@ for probe in probes:
                 insert_statement = 'INSERT INTO measure_soa (%s) VALUES %s'
 
                 cur.execute(insert_statement, (AsIs(','.join(columns)), tuple(values)))
+                conn.commit()
 
 ### TODO: progress time each day until current time
 
