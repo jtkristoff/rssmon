@@ -18,7 +18,7 @@ set ytics font ", 18"
 set ylabel "RTT"
 set ylabel offset 2.2
 set xlabel "timestamp"
-set yrange [-10:500]
+set yrange [-15:500]
 set xrange ["2019-05-11" : "2019-05-12"]
 
 
