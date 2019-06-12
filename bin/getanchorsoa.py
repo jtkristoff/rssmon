@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 
+import logging
 import psycopg2
 import requests
 import sys
 
 from datetime import datetime, timedelta, timezone
+from logging.handlers import SysLogHandler
 from psycopg2.extensions import AsIs
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+
+logger = SysLogHandler(facility=SysLogHandler.LOG_LOCAL0)
+logger.ident = 'getanchorsoa'
 
 # starting epoch 31 days ago
 start_time = int((datetime.now(tz=timezone.utc) - timedelta(days=31)).timestamp())
@@ -69,44 +74,48 @@ def requests_retry_session(
     session.mount('https://', adapter)
     return session
 
-for probe in probes:
+while start_time < now:
+    for probe in probes:
 
-    for type,value in soa_prefix.items():
-        # skip v6 measurements for non-v6 probes
-        if (type == 'v6_udp' or type == 'v6_tcp') and probe[1] is None:
-            continue
+        for type,value in soa_prefix.items():
+            # skip v6 measurements for non-v6 probes
+            if (type == 'v6_udp' or type == 'v6_tcp') and probe[1] is None:
+                continue
 
-        for root,id in server_offset.items():
+            for root,id in server_offset.items():
 
-            url = "%s/%s/results?probe_ids=%d&start=%d&stop=%d" % (measure_url, value + id, probe[0], start_time, stop_time)
-            # TODO: log to syslog
-            sys.stderr.write("### Fetching measurement data: %s\n" % (url))
+                url = "%s/%s/results?probe_ids=%d&start=%d&stop=%d" % (measure_url, value + id, probe[0], start_time, stop_time)
+                # TODO: log to syslog
+                sys.stderr.write("### Fetching measurement data: %s\n" % (url))
 
-            ### TODO: read operation timeout, retry handling, then give up?
-            try:
-#                resp = requests.get(url=url, timeout=5)
-                resp = requests_retry_session().get(url)
-            except:
-                ### TODO: syslog error and move on to the next one
-                print('Oops')
-                raise
-
-            data = resp.json()
-
-            for results in data:
+                ### TODO: read operation timeout, retry handling, then give up?
                 try:
-                    rt = results['result']['rt']
-                except:
-                    rt = -10   # error in measurement
+#                    resp = requests.get(url=url, timeout=5)
+                    resp = requests_retry_session().get(url)
+                except requests.exceptions.RequestException as err:
+                    ### XXX: is this sufficient?
+                    logger.warning('url fetch error: %s (%s)', url, err)
+                    continue
 
-                ts = datetime.utcfromtimestamp(results['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+                data = resp.json()
 
-                columns = ['ts','probe','type','ns','rt']
-                values = [ts,probe[0],type,root,rt]
-                insert_statement = 'INSERT INTO measure_soa (%s) VALUES %s'
+                for results in data:
+                    try:
+                        rt = results['result']['rt']
+                    except:
+                        rt = -10   # error in measurement
 
-                cur.execute(insert_statement, (AsIs(','.join(columns)), tuple(values)))
-                conn.commit()
+                    ts = datetime.utcfromtimestamp(results['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+
+                    columns = ['ts','probe','type','ns','rt']
+                    values = [ts,probe[0],type,root,rt]
+                    insert_statement = 'INSERT INTO measure_soa (%s) VALUES %s'
+
+                    cur.execute(insert_statement, (AsIs(','.join(columns)), tuple(values)))
+                    conn.commit()
+
+    start_time = stop_time + 1
+    stop_time += 86400
 
 ### TODO: progress time each day until current time
 
