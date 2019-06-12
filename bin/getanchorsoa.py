@@ -11,8 +11,10 @@ from psycopg2.extensions import AsIs
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
-logger = SysLogHandler(facility=SysLogHandler.LOG_LOCAL0)
-logger.ident = 'getanchorsoa'
+syslog = SysLogHandler('/dev/log', facility=SysLogHandler.LOG_LOCAL0)
+syslog.setFormatter(logging.Formatter('getanchorsoa: %(message)s'))
+logger = logging.getLogger()
+logger.addHandler(syslog)
 
 # starting epoch 31 days ago
 start_time = int((datetime.now(tz=timezone.utc) - timedelta(days=31)).timestamp())
@@ -92,6 +94,7 @@ while start_time < now:
                 try:
 #                    resp = requests.get(url=url, timeout=5)
                     resp = requests_retry_session().get(url)
+                    logger.info('url fetched: %s', url)
                 except requests.exceptions.RequestException as err:
                     ### XXX: is this sufficient?
                     logger.warning('url fetch error: %s (%s)', url, err)
