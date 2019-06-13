@@ -47,9 +47,8 @@ server_offset = {
     'M-ROOT' : '06'
 }
 
-### XXX: need start and stop time to fetch more than a few days measurements
+### XXX: need start and stop time to fetch limited amount of data at a time
 ###      otherwise the request takes too long (or response is too large)
-###      pick a start time and get data for intervals beginning from there
 
 conn = psycopg2.connect("dbname=rssmon")
 cur  = conn.cursor()
@@ -90,14 +89,12 @@ while start_time < now:
                 # TODO: log to syslog
                 sys.stderr.write("### Fetching measurement data: %s\n" % (url))
 
-                ### TODO: read operation timeout, retry handling, then give up?
                 try:
-#                    resp = requests.get(url=url, timeout=5)
                     resp = requests_retry_session().get(url)
                     logger.info('url fetched: %s', url)
-                except requests.exceptions.RequestException as err:
+                except:
                     ### XXX: is this sufficient?
-                    logger.warning('url fetch error: %s (%s)', url, err)
+                    logger.warning('url fetch error: %s', url)
                     continue
 
                 data = resp.json()
@@ -119,8 +116,6 @@ while start_time < now:
 
     start_time = stop_time + 1
     stop_time += 86400
-
-### TODO: progress time each day until current time
 
 conn.commit()
 cur.close()
