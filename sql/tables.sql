@@ -17,5 +17,5 @@ CREATE TABLE measure_soa (
     probe    BIGINT NOT NULL,
     type     TEXT NOT NULL,
     ns       TEXT NOT NULL,
-    rt       NUMERIC (7, 3) NOT NULL
+    rt       NUMERIC (8, 3) NOT NULL
 );
