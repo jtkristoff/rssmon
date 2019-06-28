@@ -97,7 +97,11 @@ while start_time < now:
                     logger.warning('url fetch error: %s', url)
                     continue
 
-                data = resp.json()
+                try:
+                    data = resp.json()
+                except:
+                    logger.warning('url decode error: %s', url)
+                    continue
 
                 for results in data:
                     try:
